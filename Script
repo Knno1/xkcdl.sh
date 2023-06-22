@@ -1,0 +1,50 @@
+!/bin/bash
+
+# Get the number of the latest comic
+latest=$(curl -s "https://xkcd.com/info.0.json" | jq '.num')
+echo "The latest comic is number $latest."
+
+# Check the current directory for the highest-numbered comic
+last_downloaded=$(ls | grep -o '[0-9]\+' | sort -n | tail -n 1)
+if [ -z "$last_downloaded" ]; then
+  last_downloaded=0
+fi
+echo "The last comic downloaded was number $last_downloaded."
+
+# Ask the user if they want to continue
+echo "Would you like to download some comics? (yes/no)"
+read answer
+
+# Check the user's answer
+if [ "$answer" != "y" ]; then
+  echo "Okay, exiting."
+  exit 0
+fi
+
+# Ask the user for the start and end of the range
+echo "Enter the first comic number:"
+read start
+echo "Enter the last comic number:"
+read end
+
+# Loop from the start to the end
+for ((i=start; i<=end; i++))
+do
+  # Get the JSON for the comic with number $i
+  json=$(curl -s "https://xkcd.com/$i/info.0.json")
+
+  # Get the URL of the comic's image from the JSON
+  img_url=$(echo $json | jq -r '.img')
+
+  # Get the title of the comic from the JSON
+  title=$(echo $json | jq -r '.title')
+
+  # Get the file extension from the image URL
+  ext="${img_url##*.}"
+
+# Download the image and save it with a filename that includes the comic number
+  echo "Downloading comic $i: $title"
+  curl -s -o "$i.$ext" $img_url
+done
+
+echo "Download complete."
